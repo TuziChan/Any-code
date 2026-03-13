@@ -214,7 +214,7 @@ fn find_claude_installation() -> Option<(String, PathBuf)> {
     let home = dirs::home_dir()?;
     let is_windows = cfg!(target_os = "windows");
 
-    // 1. bun installation
+    // 1. bun installation - 与 Python 脚本保持一致，不检查文件大小
     let bun_candidates: Vec<PathBuf> = if is_windows {
         vec![home.join(".local").join("bin").join("claude.exe")]
     } else {
@@ -225,11 +225,8 @@ fn find_claude_installation() -> Option<(String, PathBuf)> {
     };
     for p in &bun_candidates {
         if p.is_file() {
-            if let Ok(meta) = fs::metadata(p) {
-                if meta.len() > 10 * 1024 * 1024 {
-                    return Some(("bun".to_string(), p.clone()));
-                }
-            }
+            // Python 脚本不检查文件大小，直接返回
+            return Some(("bun".to_string(), p.clone()));
         }
     }
 
@@ -258,6 +255,26 @@ fn find_claude_installation() -> Option<(String, PathBuf)> {
         if pkg_dir.is_dir() {
             if let Some(target) = find_patch_target_in_pkg(&pkg_dir) {
                 return Some(("pnpm".to_string(), target));
+            }
+        }
+
+        // Fallback: search in .pnpm directory (Python 脚本的逻辑)
+        if let Some(parent) = PathBuf::from(&pnpm_root).parent() {
+            let pnpm_dir = parent.join(".pnpm");
+            if pnpm_dir.is_dir() {
+                if let Ok(entries) = fs::read_dir(&pnpm_dir) {
+                    for entry in entries.filter_map(|e| e.ok()) {
+                        let path = entry.path();
+                        if path.is_dir() {
+                            let pkg = path.join("@anthropic-ai").join("claude-code");
+                            if pkg.is_dir() {
+                                if let Some(target) = find_patch_target_in_pkg(&pkg) {
+                                    return Some(("pnpm".to_string(), target));
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -295,6 +312,14 @@ fn find_claude_installation() -> Option<(String, PathBuf)> {
                     }
                 }
             }
+        }
+    }
+
+    // 5. WSL installations (Windows only)
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(result) = find_wsl_installations(&home) {
+            return Some(result);
         }
     }
 
@@ -424,11 +449,173 @@ fn find_npm_fallback(home: &Path, is_windows: bool) -> Option<(String, PathBuf)>
     None
 }
 
+/// Get list of installed WSL distributions
+fn get_wsl_distros() -> Vec<String> {
+    let output = match Command::new("wsl.exe")
+        .arg("--list")
+        .arg("--quiet")
+        .output()
+    {
+        Ok(o) => o,
+        Err(_) => return Vec::new(),
+    };
+
+    if !output.status.success() {
+        return Vec::new();
+    }
+
+    let text = String::from_utf8_lossy(&output.stdout);
+    text.lines()
+        .filter_map(|l| {
+            let trimmed = l.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        })
+        .collect()
+}
+
+/// Check if a path is safely accessible (handle WSL UNC path permission issues)
+fn safe_is_dir(path: &Path) -> bool {
+    path.is_dir()
+}
+
+/// Find Claude Code installation in WSL distributions (only on Windows)
+#[cfg(target_os = "windows")]
+fn find_wsl_installations(home: &Path) -> Option<(String, PathBuf)> {
+    let distros = get_wsl_distros();
+    if distros.is_empty() {
+        return None;
+    }
+
+    for dname in &distros {
+        let distro = PathBuf::from(format!("//wsl.localhost/{}", dname));
+        if !safe_is_dir(&distro) {
+            continue;
+        }
+
+        // Collect user home directories
+        let mut user_dirs: Vec<PathBuf> = Vec::new();
+        let home_base = distro.join("home");
+        if safe_is_dir(&home_base) {
+            if let Ok(entries) = fs::read_dir(&home_base) {
+                for e in entries.filter_map(|e| e.ok()) {
+                    if e.path().is_dir() {
+                        user_dirs.push(e.path());
+                    }
+                }
+            }
+        }
+        let root_home = distro.join("root");
+        if safe_is_dir(&root_home) {
+            user_dirs.push(root_home);
+        }
+
+        for udir in &user_dirs {
+            // 1. bun: ~/.local/share/claude/versions/<ver>
+            let versions_dir = udir.join(".local").join("share").join("claude").join("versions");
+            if safe_is_dir(&versions_dir) {
+                if let Ok(entries) = fs::read_dir(&versions_dir) {
+                    let mut vers: Vec<_> = entries.filter_map(|e| e.ok()).collect();
+                    vers.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+                    for v in vers {
+                        let path = v.path();
+                        // Skip backup files
+                        if path.file_name()
+                            .map_or(false, |n| n.to_string_lossy().ends_with(".toolsearch-bak"))
+                        {
+                            continue;
+                        }
+                        if path.is_file() {
+                            if let Ok(meta) = fs::metadata(&path) {
+                                if meta.len() > 10 * 1024 * 1024 {
+                                    return Some(("wsl".to_string(), path));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. npm: scan nvm, fnm, volta
+            let npm_search: Vec<(PathBuf, &str)> = Vec::new();
+
+            // nvm: ~/.nvm/versions/node/<ver>/lib/node_modules
+            let nvm_node = udir.join(".nvm").join("versions").join("node");
+            if safe_is_dir(&nvm_node) {
+                if let Ok(entries) = fs::read_dir(&nvm_node) {
+                    for v in entries.filter_map(|e| e.ok()) {
+                        let nm = v.path().join("lib").join("node_modules");
+                        if v.path().is_dir() && nm.is_dir() {
+                            // Can't easily pass label here, use a workaround
+                        }
+                    }
+                }
+            }
+
+            // fnm: ~/.fnm/node-versions/<ver>/installation/lib/node_modules
+            let fnm_nv = udir.join(".fnm").join("node-versions");
+            if safe_is_dir(&fnm_nv) {
+                if let Ok(entries) = fs::read_dir(&fnm_nv) {
+                    for v in entries.filter_map(|e| e.ok()) {
+                        let nm = v.path().join("installation").join("lib").join("node_modules");
+                        if v.path().is_dir() && nm.is_dir() {
+                            let pkg = nm.join("@anthropic-ai").join("claude-code");
+                            if let Some(target) = find_patch_target_in_pkg(&pkg) {
+                                return Some(("wsl".to_string(), target));
+                            }
+                        }
+                    }
+                }
+            }
+
+            // volta: ~/.volta/tools/image/node/<ver>/lib/node_modules
+            let volta_node = udir.join(".volta").join("tools").join("image").join("node");
+            if safe_is_dir(&volta_node) {
+                if let Ok(entries) = fs::read_dir(&volta_node) {
+                    for v in entries.filter_map(|e| e.ok()) {
+                        let nm = v.path().join("lib").join("node_modules");
+                        if v.path().is_dir() && nm.is_dir() {
+                            let pkg = nm.join("@anthropic-ai").join("claude-code");
+                            if let Some(target) = find_patch_target_in_pkg(&pkg) {
+                                return Some(("wsl".to_string(), target));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. System-level npm: /usr/local/lib/node_modules, /usr/lib/node_modules
+        for sys_nm in &[
+            distro.join("usr").join("local").join("lib").join("node_modules"),
+            distro.join("usr").join("lib").join("node_modules"),
+        ] {
+            let pkg = sys_nm.join("@anthropic-ai").join("claude-code");
+            if safe_is_dir(&pkg) {
+                if let Some(target) = find_patch_target_in_pkg(&pkg) {
+                    return Some(("wsl".to_string(), target));
+                }
+            }
+        }
+    }
+
+    None
+}
+
 /// Recursively find a binary file by name (for VS Code extensions)
 fn find_binary_recursive(dir: &Path, name: &str) -> Option<PathBuf> {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.filter_map(|e| e.ok()) {
             let path = entry.path();
+            // Skip .bak backup files (Python 脚本的逻辑)
+            if path.file_name()
+                .map_or(false, |n| n.to_string_lossy().ends_with(".bak"))
+            {
+                continue;
+            }
             if path.is_file() && path.file_name().map_or(false, |n| n == name) {
                 if let Ok(meta) = fs::metadata(&path) {
                     if meta.len() > 10 * 1024 * 1024 {
