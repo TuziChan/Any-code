@@ -89,6 +89,15 @@ export const ViewRouter: React.FC = () => {
     return () => window.removeEventListener('open-prompt-api-settings', handleOpenPromptAPISettings as EventListener);
   }, [currentView, navigateTo]);
 
+  // Listen for open-provider-settings (from ModelSelector quick switch)
+  useEffect(() => {
+    const handleOpenProviderSettings = () => {
+      navigateTo("settings", { initialTab: "provider" });
+    };
+    window.addEventListener('open-provider-settings', handleOpenProviderSettings as EventListener);
+    return () => window.removeEventListener('open-provider-settings', handleOpenProviderSettings as EventListener);
+  }, [currentView, navigateTo]);
+
   // Listen for claude-session-selected
   useEffect(() => {
     const handleSessionSelected = (event: CustomEvent) => {
