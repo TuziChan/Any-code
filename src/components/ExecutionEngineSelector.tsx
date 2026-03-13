@@ -21,7 +21,7 @@ import { api } from '@/lib/api';
 import { relaunchApp } from '@/lib/updater';
 import { ask, message } from '@tauri-apps/plugin-dialog';
 import { useEngineStatus } from '@/hooks/useEngineStatus';
-import type { CodexExecutionMode } from '@/types/codex';
+import type { CodexExecutionMode, CodexApprovalPolicy, CodexSandboxPolicy } from '@/types/codex';
 
 // ============================================================================
 // Type Definitions
@@ -35,6 +35,8 @@ export interface ExecutionEngineConfig {
   engine: ExecutionEngine;
   // Codex-specific config
   codexMode?: CodexExecutionMode;
+  codexApprovalPolicy?: CodexApprovalPolicy;
+  codexSandboxPolicy?: CodexSandboxPolicy;
   codexModel?: string;
   codexApiKey?: string;
   /** Codex reasoning effort level: low, medium, high, xhigh */
@@ -360,10 +362,17 @@ export const ExecutionEngineSelector: React.FC<ExecutionEngineSelectorProps> = (
     });
   };
 
-  const handleCodexModeChange = (mode: CodexExecutionMode) => {
+  const handleCodexApprovalPolicyChange = (policy: CodexApprovalPolicy) => {
     onChange({
       ...value,
-      codexMode: mode,
+      codexApprovalPolicy: policy,
+    });
+  };
+
+  const handleCodexSandboxPolicyChange = (sandbox: CodexSandboxPolicy) => {
+    onChange({
+      ...value,
+      codexSandboxPolicy: sandbox,
     });
   };
 
@@ -407,9 +416,9 @@ export const ExecutionEngineSelector: React.FC<ExecutionEngineSelectorProps> = (
               <Zap className="h-4 w-4" />
             )}
             <span>{getEngineDisplayName()}</span>
-            {value.engine === 'codex' && value.codexMode && (
+            {value.engine === 'codex' && (value.codexApprovalPolicy || value.codexSandboxPolicy || value.codexMode) && (
               <span className="text-xs text-muted-foreground">
-                ({value.codexMode === 'read-only' ? '只读' : value.codexMode === 'full-auto' ? '编辑' : '完全访问'})
+                ({value.codexApprovalPolicy || value.codexMode || 'suggest'})
               </span>
             )}
             {value.engine === 'gemini' && value.geminiApprovalMode && (
@@ -461,12 +470,69 @@ export const ExecutionEngineSelector: React.FC<ExecutionEngineSelectorProps> = (
             <>
               <div className="h-px bg-border" />
 
-              {/* Execution Mode */}
+              {/* Approval Policy */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">执行模式</Label>
+                <Label className="text-sm font-medium">审批策略</Label>
                 <Select
-                  value={value.codexMode || 'read-only'}
-                  onValueChange={(v) => handleCodexModeChange(v as CodexExecutionMode)}
+                  value={value.codexApprovalPolicy || 'suggest'}
+                  onValueChange={(v) => handleCodexApprovalPolicyChange(v as CodexApprovalPolicy)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="suggest">
+                      <div>
+                        <div className="font-medium">suggest</div>
+                        <div className="text-xs text-muted-foreground">建议更改，应用前询问</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="auto-edit">
+                      <div>
+                        <div className="font-medium">auto-edit</div>
+                        <div className="text-xs text-muted-foreground">自动编辑文件，命令需确认</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="full-auto">
+                      <div>
+                        <div className="font-medium">full-auto</div>
+                        <div className="text-xs text-muted-foreground">全自动执行所有操作</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="on-request">
+                      <div>
+                        <div className="font-medium">on-request</div>
+                        <div className="text-xs text-muted-foreground">仅在 Agent 主动请求时询问</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="on-failure">
+                      <div>
+                        <div className="font-medium">on-failure</div>
+                        <div className="text-xs text-muted-foreground">命令失败时询问</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="untrusted">
+                      <div>
+                        <div className="font-medium">untrusted</div>
+                        <div className="text-xs text-muted-foreground">每个操作都需确认</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="never">
+                      <div>
+                        <div className="font-medium text-destructive">never</div>
+                        <div className="text-xs text-muted-foreground">⚠️ 从不询问，全部自动批准</div>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sandbox Policy */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">沙箱策略</Label>
+                <Select
+                  value={value.codexSandboxPolicy || 'read-only'}
+                  onValueChange={(v) => handleCodexSandboxPolicyChange(v as CodexSandboxPolicy)}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -474,20 +540,26 @@ export const ExecutionEngineSelector: React.FC<ExecutionEngineSelectorProps> = (
                   <SelectContent>
                     <SelectItem value="read-only">
                       <div>
-                        <div className="font-medium">只读模式</div>
-                        <div className="text-xs text-muted-foreground">安全模式，只能读取文件</div>
+                        <div className="font-medium">read-only</div>
+                        <div className="text-xs text-muted-foreground">只读，无网络访问</div>
                       </div>
                     </SelectItem>
-                    <SelectItem value="full-auto">
+                    <SelectItem value="workspace-write">
                       <div>
-                        <div className="font-medium">编辑模式</div>
-                        <div className="text-xs text-muted-foreground">允许编辑文件</div>
+                        <div className="font-medium">workspace-write</div>
+                        <div className="text-xs text-muted-foreground">可写项目目录，无网络</div>
                       </div>
                     </SelectItem>
                     <SelectItem value="danger-full-access">
                       <div>
-                        <div className="font-medium text-destructive">完全访问模式</div>
-                        <div className="text-xs text-muted-foreground">⚠️ 允许网络访问</div>
+                        <div className="font-medium text-destructive">danger-full-access</div>
+                        <div className="text-xs text-muted-foreground">⚠️ 完全访问，含网络</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="external-sandbox">
+                      <div>
+                        <div className="font-medium">external-sandbox</div>
+                        <div className="text-xs text-muted-foreground">委托外部容器沙箱</div>
                       </div>
                     </SelectItem>
                   </SelectContent>

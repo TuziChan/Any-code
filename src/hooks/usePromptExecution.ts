@@ -20,7 +20,7 @@ import type { ClaudeStreamMessage } from '@/types/claude';
 import type { ModelType } from '@/components/FloatingPromptInput/types';
 // 🔧 FIX: 导入 CodexEventConverter 类，在每个会话中创建独立实例避免全局单例污染
 import { CodexEventConverter, extractCodexRateLimitsFromEvent } from '@/lib/codexConverter';
-import type { CodexExecutionMode, CodexRateLimits } from '@/types/codex';
+import type { CodexExecutionMode, CodexApprovalPolicy, CodexSandboxPolicy, CodexRateLimits } from '@/types/codex';
 import { cacheModelFromInitMessage } from '@/lib/modelNameParser';
 
 // ============================================================================
@@ -73,7 +73,9 @@ interface UsePromptExecutionConfig {
 
   // 🆕 Execution Engine Integration (Claude/Codex/Gemini)
   executionEngine?: 'claude' | 'codex' | 'gemini'; // 执行引擎选择 (默认: 'claude')
-  codexMode?: CodexExecutionMode;       // Codex 执行模式
+  codexMode?: CodexExecutionMode;       // Codex 执行模式 (legacy)
+  codexApprovalPolicy?: CodexApprovalPolicy; // Codex 审批策略
+  codexSandboxPolicy?: CodexSandboxPolicy;   // Codex 沙箱策略
   codexModel?: string;                  // Codex 模型 (e.g., 'gpt-5.2')
   geminiModel?: string;                 // Gemini 模型 (e.g., 'gemini-3-flash')
   geminiApprovalMode?: 'auto_edit' | 'yolo' | 'default'; // Gemini 审批模式
@@ -131,6 +133,8 @@ export function usePromptExecution(config: UsePromptExecutionConfig): UsePromptE
     extractedSessionInfo,
     executionEngine = 'claude', // 🆕 默认使用 Claude Code
     codexMode = 'read-only',     // 🆕 Codex 默认只读模式
+    codexApprovalPolicy,         // 🆕 Codex 审批策略
+    codexSandboxPolicy,          // 🆕 Codex 沙箱策略
     codexModel,                  // 🆕 Codex 模型
     geminiModel,                 // 🆕 Gemini 模型
     geminiApprovalMode,          // 🆕 Gemini 审批模式
@@ -1557,6 +1561,8 @@ export function usePromptExecution(config: UsePromptExecutionConfig): UsePromptE
               projectPath,
               prompt: processedPrompt,
               mode: codexMode || 'read-only',
+              approvalPolicy: codexApprovalPolicy,
+              sandboxPolicy: codexSandboxPolicy,
               model: codexModel || model,
               json: true
             });
@@ -1566,6 +1572,8 @@ export function usePromptExecution(config: UsePromptExecutionConfig): UsePromptE
               projectPath,
               prompt: processedPrompt,
               mode: codexMode || 'read-only',
+              approvalPolicy: codexApprovalPolicy,
+              sandboxPolicy: codexSandboxPolicy,
               model: codexModel || model,
               json: true
             });
@@ -1577,6 +1585,8 @@ export function usePromptExecution(config: UsePromptExecutionConfig): UsePromptE
             projectPath,
             prompt: processedPrompt,
             mode: codexMode || 'read-only',
+            approvalPolicy: codexApprovalPolicy,
+            sandboxPolicy: codexSandboxPolicy,
             model: codexModel || model,
             json: true
           });
@@ -1681,6 +1691,8 @@ export function usePromptExecution(config: UsePromptExecutionConfig): UsePromptE
     extractedSessionInfo,
     executionEngine,  // 🆕 Codex/Gemini integration
     codexMode,        // 🆕 Codex integration
+    codexApprovalPolicy, // 🆕 Codex approval policy
+    codexSandboxPolicy,  // 🆕 Codex sandbox policy
     codexModel,       // 🆕 Codex integration
     geminiModel,      // 🆕 Gemini integration
     geminiApprovalMode, // 🆕 Gemini integration

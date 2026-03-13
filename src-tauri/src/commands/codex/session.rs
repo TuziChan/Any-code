@@ -29,7 +29,7 @@ use super::config::get_codex_sessions_dir;
 // Type Definitions
 // ============================================================================
 
-/// Codex execution mode
+/// Codex execution mode (legacy, kept for backward compatibility)
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CodexExecutionMode {
@@ -47,6 +47,54 @@ impl Default for CodexExecutionMode {
     }
 }
 
+/// Codex approval policy (--approval-mode)
+/// Controls when the agent asks for user approval
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CodexApprovalPolicy {
+    /// (legacy) Suggest changes, ask before applying
+    Suggest,
+    /// (legacy) Auto-apply file edits, ask for commands
+    AutoEdit,
+    /// (legacy) Auto-apply everything
+    FullAuto,
+    /// (Rust CLI) Only ask when agent explicitly requests
+    OnRequest,
+    /// (Rust CLI) Ask on command failure
+    OnFailure,
+    /// (Rust CLI) Ask for every action
+    Untrusted,
+    /// (Rust CLI) Never ask, auto-approve everything
+    Never,
+}
+
+impl Default for CodexApprovalPolicy {
+    fn default() -> Self {
+        Self::Suggest
+    }
+}
+
+/// Codex sandbox policy (--sandbox)
+/// Controls file system and network access permissions
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CodexSandboxPolicy {
+    /// Read-only access, no network
+    ReadOnly,
+    /// Write within project + ~/.codex/memories, no network
+    WorkspaceWrite,
+    /// Full access including network (dangerous)
+    DangerFullAccess,
+    /// Delegate sandboxing to external container
+    ExternalSandbox,
+}
+
+impl Default for CodexSandboxPolicy {
+    fn default() -> Self {
+        Self::ReadOnly
+    }
+}
+
 /// Codex execution options
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,9 +105,15 @@ pub struct CodexExecutionOptions {
     /// User prompt
     pub prompt: String,
 
-    /// Execution mode
+    /// Execution mode (legacy)
     #[serde(default)]
     pub mode: CodexExecutionMode,
+
+    /// Approval policy (new Rust CLI)
+    pub approval_policy: Option<CodexApprovalPolicy>,
+
+    /// Sandbox policy (new Rust CLI)
+    pub sandbox_policy: Option<CodexSandboxPolicy>,
 
     /// Model to use (e.g., "gpt-5.1-codex-max")
     pub model: Option<String>,
@@ -653,16 +707,49 @@ fn build_codex_command(
         // For new sessions: add other options
         // (--json already added above)
 
-        match options.mode {
-            CodexExecutionMode::FullAuto => {
-                cmd.arg("--full-auto");
+        // New Rust CLI: use --approval-mode and --sandbox if provided
+        // Otherwise fall back to legacy mode mapping
+        if options.approval_policy.is_some() || options.sandbox_policy.is_some() {
+            // Approval policy
+            if let Some(ref policy) = options.approval_policy {
+                let policy_str = match policy {
+                    CodexApprovalPolicy::Suggest => "suggest",
+                    CodexApprovalPolicy::AutoEdit => "auto-edit",
+                    CodexApprovalPolicy::FullAuto => "full-auto",
+                    CodexApprovalPolicy::OnRequest => "on-request",
+                    CodexApprovalPolicy::OnFailure => "on-failure",
+                    CodexApprovalPolicy::Untrusted => "untrusted",
+                    CodexApprovalPolicy::Never => "never",
+                };
+                cmd.arg("--approval-mode");
+                cmd.arg(policy_str);
             }
-            CodexExecutionMode::DangerFullAccess => {
+
+            // Sandbox policy
+            if let Some(ref sandbox) = options.sandbox_policy {
+                let sandbox_str = match sandbox {
+                    CodexSandboxPolicy::ReadOnly => "read-only",
+                    CodexSandboxPolicy::WorkspaceWrite => "workspace-write",
+                    CodexSandboxPolicy::DangerFullAccess => "danger-full-access",
+                    CodexSandboxPolicy::ExternalSandbox => "external-sandbox",
+                };
                 cmd.arg("--sandbox");
-                cmd.arg("danger-full-access");
+                cmd.arg(sandbox_str);
             }
-            CodexExecutionMode::ReadOnly => {
-                // Read-only is default
+        } else {
+            // Legacy mode mapping
+            match options.mode {
+                CodexExecutionMode::FullAuto => {
+                    cmd.arg("--approval-mode");
+                    cmd.arg("full-auto");
+                }
+                CodexExecutionMode::DangerFullAccess => {
+                    cmd.arg("--sandbox");
+                    cmd.arg("danger-full-access");
+                }
+                CodexExecutionMode::ReadOnly => {
+                    // Read-only is default
+                }
             }
         }
 
@@ -737,15 +824,44 @@ fn build_wsl_codex_command(
             args.push(sid.to_string());
         }
     } else {
-        match options.mode {
-            CodexExecutionMode::FullAuto => {
-                args.push("--full-auto".to_string());
+        // New Rust CLI: use --approval-mode and --sandbox if provided
+        if options.approval_policy.is_some() || options.sandbox_policy.is_some() {
+            if let Some(ref policy) = options.approval_policy {
+                let policy_str = match policy {
+                    CodexApprovalPolicy::Suggest => "suggest",
+                    CodexApprovalPolicy::AutoEdit => "auto-edit",
+                    CodexApprovalPolicy::FullAuto => "full-auto",
+                    CodexApprovalPolicy::OnRequest => "on-request",
+                    CodexApprovalPolicy::OnFailure => "on-failure",
+                    CodexApprovalPolicy::Untrusted => "untrusted",
+                    CodexApprovalPolicy::Never => "never",
+                };
+                args.push("--approval-mode".to_string());
+                args.push(policy_str.to_string());
             }
-            CodexExecutionMode::DangerFullAccess => {
+            if let Some(ref sandbox) = options.sandbox_policy {
+                let sandbox_str = match sandbox {
+                    CodexSandboxPolicy::ReadOnly => "read-only",
+                    CodexSandboxPolicy::WorkspaceWrite => "workspace-write",
+                    CodexSandboxPolicy::DangerFullAccess => "danger-full-access",
+                    CodexSandboxPolicy::ExternalSandbox => "external-sandbox",
+                };
                 args.push("--sandbox".to_string());
-                args.push("danger-full-access".to_string());
+                args.push(sandbox_str.to_string());
             }
-            CodexExecutionMode::ReadOnly => {}
+        } else {
+            // Legacy mode mapping
+            match options.mode {
+                CodexExecutionMode::FullAuto => {
+                    args.push("--approval-mode".to_string());
+                    args.push("full-auto".to_string());
+                }
+                CodexExecutionMode::DangerFullAccess => {
+                    args.push("--sandbox".to_string());
+                    args.push("danger-full-access".to_string());
+                }
+                CodexExecutionMode::ReadOnly => {}
+            }
         }
 
         if let Some(ref model) = options.model {

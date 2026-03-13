@@ -126,7 +126,30 @@ export type CodexItem =
 // ============================================================================
 
 /**
- * Codex execution mode
+ * Codex approval policy (--approval-mode)
+ * Controls when the agent asks for user approval
+ */
+export type CodexApprovalPolicy =
+  | 'suggest'       // (legacy Node.js CLI) suggest changes, ask before applying
+  | 'auto-edit'     // (legacy Node.js CLI) auto-apply file edits, ask for commands
+  | 'full-auto'     // (legacy Node.js CLI) auto-apply everything
+  | 'on-request'    // (Rust CLI) only ask when agent explicitly requests
+  | 'on-failure'    // (Rust CLI) ask on command failure
+  | 'untrusted'     // (Rust CLI) ask for every action
+  | 'never';        // (Rust CLI) never ask, auto-approve everything
+
+/**
+ * Codex sandbox policy (--sandbox)
+ * Controls file system and network access permissions
+ */
+export type CodexSandboxPolicy =
+  | 'read-only'           // read-only access, no network
+  | 'workspace-write'     // write within project + ~/.codex/memories, no network
+  | 'danger-full-access'  // full access including network (dangerous)
+  | 'external-sandbox';   // delegate sandboxing to external container
+
+/**
+ * Codex execution mode (legacy, kept for backward compatibility)
  */
 export type CodexExecutionMode = 'read-only' | 'full-auto' | 'danger-full-access';
 
@@ -140,8 +163,14 @@ export interface CodexExecutionOptions {
   /** User prompt */
   prompt: string;
 
-  /** Execution mode (default: read-only) */
+  /** Execution mode (legacy, default: read-only) */
   mode?: CodexExecutionMode;
+
+  /** Approval policy (new Rust CLI) */
+  approvalPolicy?: CodexApprovalPolicy;
+
+  /** Sandbox policy (new Rust CLI) */
+  sandboxPolicy?: CodexSandboxPolicy;
 
   /** Model to use (e.g., gpt-5.3-codex) */
   model?: string;
@@ -188,8 +217,14 @@ export interface CodexSession {
   /** Last updated timestamp */
   updatedAt: number;
 
-  /** Execution mode used */
+  /** Execution mode used (legacy) */
   mode: CodexExecutionMode;
+
+  /** Approval policy used */
+  approvalPolicy?: CodexApprovalPolicy;
+
+  /** Sandbox policy used */
+  sandboxPolicy?: CodexSandboxPolicy;
 
   /** Model used */
   model?: string;
