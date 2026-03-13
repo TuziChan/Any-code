@@ -162,12 +162,18 @@ pub struct ToolSearchPatchStatus {
     pub install_kind: Option<String>,
 }
 
+/// Byte-level substring search (equivalent to Python's `b'...' in data`)
+fn bytes_contains(haystack: &[u8], needle: &[u8]) -> bool {
+    haystack.windows(needle.len()).any(|w| w == needle)
+}
+
 /// Find the JS file containing the domain check inside an npm package directory
 fn find_patch_target_in_pkg(pkg_dir: &Path) -> Option<PathBuf> {
+    let needle = b"api.anthropic.com";
     let cli_js = pkg_dir.join("cli.js");
     if cli_js.is_file() {
         if let Ok(data) = fs::read(&cli_js) {
-            if data.windows(18).any(|w| w == b"api.anthropic.com") {
+            if bytes_contains(&data, needle) {
                 return Some(cli_js);
             }
         }
@@ -181,7 +187,7 @@ fn find_patch_target_in_pkg(pkg_dir: &Path) -> Option<PathBuf> {
                 }
             }
             if let Ok(data) = fs::read(&js_file) {
-                if data.windows(18).any(|w| w == b"api.anthropic.com") {
+                if bytes_contains(&data, needle) {
                     return Some(js_file);
                 }
             }
