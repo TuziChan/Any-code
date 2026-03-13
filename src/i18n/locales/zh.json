@@ -1094,6 +1094,8 @@
     "running": "运行中",
     "searching": "搜索中...",
     "foundFiles": "找到 {{count}} 个文件",
+    "foundTools": "找到 {{count}} 个工具",
+    "toolLoaded": "工具已加载",
     "noMatchesFound": "No matches found",
     "fileContainsMatch": "(文件包含匹配项)",
     "matchedLine": "(匹配行)",

@@ -59,6 +59,9 @@ import {
   // 用户交互类
   AskUserQuestionWidget,
 
+  // 工具搜索类
+  ToolSearchWidget,
+
   // 文件操作（已补充）
   WriteWidget,
 
@@ -750,6 +753,18 @@ export function initializeToolRegistry(): void {
         result: props.result,
       })),
       description: '进入 Plan 模式',
+    },
+
+    // ToolSearch - 工具搜索
+    {
+      name: 'toolsearch',
+      pattern: /^tool[-_]?search$/i,
+      render: createToolAdapter(ToolSearchWidget, (props) => ({
+        query: props.input?.query || '',
+        maxResults: props.input?.max_results,
+        result: props.result,
+      })),
+      description: '工具搜索结果展示',
     },
 
     // AskUserQuestion - 用户问题询问

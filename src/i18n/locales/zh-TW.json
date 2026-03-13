@@ -1090,6 +1090,8 @@
     "running": "執行中",
     "searching": "搜尋中...",
     "foundFiles": "找到 {{count}} 個檔案",
+    "foundTools": "找到 {{count}} 個工具",
+    "toolLoaded": "工具已載入",
     "noMatchesFound": "No matches found",
     "fileContainsMatch": "(檔案包含比對項)",
     "matchedLine": "(比對行)",

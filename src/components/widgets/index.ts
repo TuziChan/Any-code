@@ -125,6 +125,10 @@ export type { PlanModeWidgetProps } from './system/PlanModeWidget';
 export { AskUserQuestionWidget } from './system/AskUserQuestionWidget';
 export type { AskUserQuestionWidgetProps } from './system/AskUserQuestionWidget';
 
+// ==================== 工具搜索类 ====================
+export { ToolSearchWidget } from './system/ToolSearchWidget';
+export type { ToolSearchWidgetProps } from './system/ToolSearchWidget';
+
 // ==================== 全部组件已迁移完成！====================
 // ✅ 原 ToolWidgets.tsx 的所有活跃组件已完成迁移
 // ✅ 3537 行巨型文件已成功拆分为 30+ 个模块化组件

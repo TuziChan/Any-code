@@ -1094,6 +1094,8 @@
     "running": "Running",
     "searching": "Searching...",
     "foundFiles": "Found {{count}} files",
+    "foundTools": "Found {{count}} tools",
+    "toolLoaded": "Tool loaded",
     "noMatchesFound": "No matches found",
     "fileContainsMatch": "(file contains matches)",
     "matchedLine": "(matched line)",
