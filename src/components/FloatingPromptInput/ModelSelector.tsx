@@ -116,60 +116,63 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         </Button>
       }
       content={
-        <div className="w-[320px] p-1">
-          <div className="px-3 py-2 text-xs text-muted-foreground border-b border-border/50 mb-1">
-            选择模型（点击星标设为新会话默认）
-          </div>
-          {availableModels.map((model) => (
-            <button
-              key={model.id}
-              onClick={() => {
-                onModelChange(model.id);
-                setOpen(false);
-              }}
-              className={cn(
-                "w-full flex items-start gap-3 p-3 rounded-md transition-colors text-left group",
-                "hover:bg-accent",
-                selectedModel === model.id && "bg-accent"
-              )}
-            >
-              <div className="mt-0.5">{model.icon}</div>
-              <div className="flex-1 space-y-1">
-                <div className="font-medium text-sm flex items-center gap-2">
-                  {model.name}
-                  {selectedModel === model.id && (
-                    <Check className="h-3.5 w-3.5 text-primary" />
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {model.description}
-                </div>
-              </div>
+        <div className={cn("flex", providers.length > 0 ? "w-[520px]" : "w-[320px]")}>
+          {/* Left: Model Selection */}
+          <div className={cn("p-1 flex-1 min-w-0", providers.length > 0 && "border-r border-border/50")}>
+            <div className="px-3 py-1.5 text-xs text-muted-foreground mb-1">
+              选择模型（点击星标设为默认）
+            </div>
+            {availableModels.map((model) => (
               <button
-                onClick={(e) => handleSetDefault(e, model.id)}
+                key={model.id}
+                onClick={() => {
+                  onModelChange(model.id);
+                  setOpen(false);
+                }}
                 className={cn(
-                  "mt-0.5 p-1 rounded hover:bg-muted transition-colors",
-                  currentDefaultModel === model.id
-                    ? "text-yellow-500"
-                    : "text-muted-foreground/50 hover:text-muted-foreground opacity-0 group-hover:opacity-100"
+                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors text-left group",
+                  "hover:bg-accent",
+                  selectedModel === model.id && "bg-accent"
                 )}
-                title={currentDefaultModel === model.id ? "当前默认模型" : "设为默认模型"}
               >
-                <Star className={cn(
-                  "h-4 w-4",
-                  currentDefaultModel === model.id && "fill-yellow-500"
-                )} />
+                <div className="flex-shrink-0">{model.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm flex items-center gap-1.5">
+                    <span className="truncate">{model.name}</span>
+                    {selectedModel === model.id && (
+                      <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                    )}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground truncate">
+                    {model.description}
+                  </div>
+                </div>
+                <button
+                  onClick={(e) => handleSetDefault(e, model.id)}
+                  className={cn(
+                    "p-0.5 rounded hover:bg-muted transition-colors flex-shrink-0",
+                    currentDefaultModel === model.id
+                      ? "text-yellow-500"
+                      : "text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100"
+                  )}
+                  title={currentDefaultModel === model.id ? "当前默认模型" : "设为默认模型"}
+                >
+                  <Star className={cn(
+                    "h-3.5 w-3.5",
+                    currentDefaultModel === model.id && "fill-yellow-500"
+                  )} />
+                </button>
               </button>
-            </button>
-          ))}
+            ))}
+          </div>
 
-          {/* Quick Provider (代理商) Switch */}
+          {/* Right: Provider Quick Switch */}
           {providers.length > 0 && (
-            <>
-              <div className="px-3 py-2 text-xs text-muted-foreground border-t border-border/50 mt-1 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
+            <div className="p-1 w-[200px] flex-shrink-0">
+              <div className="px-3 py-1.5 text-xs text-muted-foreground mb-1 flex items-center justify-between">
+                <span className="flex items-center gap-1">
                   <Globe className="h-3 w-3" />
-                  快速切换代理商
+                  代理商
                 </span>
                 <button
                   onClick={(e) => {
@@ -177,30 +180,30 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     setOpen(false);
                     window.dispatchEvent(new CustomEvent('open-provider-settings'));
                   }}
-                  className="text-muted-foreground/60 hover:text-foreground transition-colors"
+                  className="text-muted-foreground/50 hover:text-foreground transition-colors"
                   title="管理代理商"
                 >
                   <Settings className="h-3 w-3" />
                 </button>
               </div>
 
-              {/* Official (no provider) option */}
+              {/* Official API */}
               <button
                 onClick={(e) => {
                   if (hasActiveProvider) handleClearProvider(e);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors text-left text-sm",
+                  "w-full flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors text-left text-sm",
                   "hover:bg-accent",
                   !hasActiveProvider && "bg-accent/60"
                 )}
               >
                 <div className={cn(
-                  "h-2 w-2 rounded-full flex-shrink-0",
+                  "h-1.5 w-1.5 rounded-full flex-shrink-0",
                   !hasActiveProvider ? "bg-green-500" : "bg-muted-foreground/30"
                 )} />
                 <span className={cn(
-                  "flex-1 truncate",
+                  "flex-1 truncate text-xs",
                   !hasActiveProvider ? "font-medium" : "text-muted-foreground"
                 )}>
                   官方 API
@@ -209,7 +212,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                 )}
                 {!hasActiveProvider && !switchingProvider && (
-                  <Check className="h-3.5 w-3.5 text-primary" />
+                  <Check className="h-3 w-3 text-primary flex-shrink-0" />
                 )}
               </button>
 
@@ -224,17 +227,17 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     }}
                     disabled={switching}
                     className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors text-left text-sm",
+                      "w-full flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors text-left text-sm",
                       "hover:bg-accent",
                       active && "bg-accent/60"
                     )}
                   >
                     <div className={cn(
-                      "h-2 w-2 rounded-full flex-shrink-0",
+                      "h-1.5 w-1.5 rounded-full flex-shrink-0",
                       active ? "bg-green-500" : "bg-muted-foreground/30"
                     )} />
                     <span className={cn(
-                      "flex-1 truncate",
+                      "flex-1 truncate text-xs",
                       active ? "font-medium" : "text-muted-foreground"
                     )}>
                       {provider.name}
@@ -243,12 +246,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                     )}
                     {active && !switching && (
-                      <Check className="h-3.5 w-3.5 text-primary" />
+                      <Check className="h-3 w-3 text-primary flex-shrink-0" />
                     )}
                   </button>
                 );
               })}
-            </>
+            </div>
           )}
         </div>
       }
