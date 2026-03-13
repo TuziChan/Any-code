@@ -230,7 +230,8 @@ fn find_claude_installation() -> Option<(String, PathBuf)> {
         }
     }
 
-    // 2. npm global
+    // 2. npm global - 尝试多种方法查找
+    // 方法1: 通过 npm 命令
     if let Some(npm_root) = run_shell_cmd(&["npm", "root", "-g"]) {
         let pkg_dir = PathBuf::from(&npm_root)
             .join("@anthropic-ai")
@@ -240,11 +241,30 @@ fn find_claude_installation() -> Option<(String, PathBuf)> {
                 return Some(("npm".to_string(), target));
             }
         }
-    } else {
-        // npm fallback: scan common node_modules locations
-        if let Some(result) = find_npm_fallback(&home, is_windows) {
-            return Some(result);
+    }
+
+    // 方法2 (Windows): 直接检查常见 npm 全局路径
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            let npm_global_paths = vec![
+                PathBuf::from(&appdata).join("npm").join("node_modules"),
+                PathBuf::from(&appdata).join("npm").join("pnpm").join("node_modules"),
+            ];
+            for nm_dir in npm_global_paths {
+                let pkg_dir = nm_dir.join("@anthropic-ai").join("claude-code");
+                if pkg_dir.is_dir() {
+                    if let Some(target) = find_patch_target_in_pkg(&pkg_dir) {
+                        return Some(("npm".to_string(), target));
+                    }
+                }
+            }
         }
+    }
+
+    // 方法3: 使用 find_npm_fallback 扫描版本管理器
+    if let Some(result) = find_npm_fallback(&home, is_windows) {
+        return Some(result);
     }
 
     // 3. pnpm global

@@ -367,7 +367,7 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
           </div>
 
           {/* ToolSearch Patch Status (Claude only) */}
-          {claudeInstalled && patchStatus && patchStatus.status !== 'not_found' && (
+          {claudeInstalled && patchStatus && (
             <div className={cn(
               "flex items-center gap-2 px-2 py-1.5 rounded text-[11px] border",
               patchStatus.status === 'patched'
@@ -396,6 +396,19 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
                       <Wrench className="h-2.5 w-2.5" />
                     )}
                     修复
+                  </button>
+                </>
+              ) : patchStatus.status === 'not_found' ? (
+                <>
+                  <Search className="h-3 w-3 flex-shrink-0" />
+                  <span className="flex-1">ToolSearch 未检测到</span>
+                  <button
+                    onClick={handleRefreshAll}
+                    disabled={refreshing}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors text-[10px] font-medium"
+                  >
+                    <RefreshCw className={cn("h-2.5 w-2.5", refreshing && "animate-spin")} />
+                    重试
                   </button>
                 </>
               ) : (
