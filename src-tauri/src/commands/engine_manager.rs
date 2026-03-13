@@ -654,13 +654,38 @@ fn find_binary_recursive(dir: &Path, name: &str) -> Option<PathBuf> {
 
 /// Check ToolSearch patch status for the detected Claude Code installation
 fn check_toolsearch_patch_status_sync() -> ToolSearchPatchStatus {
+    let home = dirs::home_dir();
+    let is_windows = cfg!(target_os = "windows");
+
+    // 收集诊断信息
+    let mut diag_paths: Vec<String> = Vec::new();
+
+    // 检查 bun 安装路径
+    if let Some(ref h) = home {
+        if is_windows {
+            let p = h.join(".local").join("bin").join("claude.exe");
+            diag_paths.push(format!("bun: {}", p.display()));
+        } else {
+            diag_paths.push(format!("bun: {}/.claude/local/claude", h.display()));
+            diag_paths.push(format!("bun: {}/.local/bin/claude", h.display()));
+        }
+    }
+
+    // 检查 npm 安装路径
+    if is_windows {
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            diag_paths.push(format!("npm: {}/npm/node_modules/@anthropic-ai/claude-code", appdata));
+        }
+    }
+
     let installation = find_claude_installation();
     let (kind, target) = match installation {
         Some((k, t)) => (k, t),
         None => {
+            let msg = format!("未检测到 Claude Code 安装。已检查: {}", diag_paths.join(", "));
             return ToolSearchPatchStatus {
                 status: "not_found".to_string(),
-                message: "未检测到 Claude Code 安装".to_string(),
+                message: msg,
                 target_path: None,
                 install_kind: None,
             };
