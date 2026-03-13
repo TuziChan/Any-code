@@ -375,6 +375,16 @@ export interface EngineActionResult {
 }
 
 /**
+ * ToolSearch patch status
+ */
+export interface ToolSearchPatchStatus {
+  status: 'unpatched' | 'patched' | 'not_found' | 'unknown';
+  message: string;
+  target_path: string | null;
+  install_kind: string | null;
+}
+
+/**
  * Codex provider configuration for OpenAI Codex API switching
  */
 export interface CodexProviderConfig {
@@ -4269,6 +4279,15 @@ export const api = {
   },
   async uninstallGeminiCli(): Promise<EngineActionResult> {
     return await invoke<EngineActionResult>("uninstall_gemini_cli");
+  },
+
+  // ─── ToolSearch Patch ───
+
+  async checkToolSearchPatch(): Promise<ToolSearchPatchStatus> {
+    return await invoke<ToolSearchPatchStatus>("check_toolsearch_patch");
+  },
+  async applyToolSearchFix(): Promise<EngineActionResult> {
+    return await invoke<EngineActionResult>("apply_toolsearch_fix");
   },
 
 };

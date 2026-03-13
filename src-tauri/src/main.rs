@@ -171,6 +171,7 @@ use commands::engine_manager::{
     install_claude_cli, update_claude_cli, uninstall_claude_cli,
     install_codex_cli, update_codex_cli, uninstall_codex_cli,
     install_gemini_cli, update_gemini_cli, uninstall_gemini_cli,
+    check_toolsearch_patch, apply_toolsearch_fix,
 };
 use process::ProcessRegistryState;
 use tauri::{Manager, WindowEvent};
@@ -564,6 +565,9 @@ fn main() {
             install_gemini_cli,
             update_gemini_cli,
             uninstall_gemini_cli,
+            // ToolSearch Patch
+            check_toolsearch_patch,
+            apply_toolsearch_fix,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

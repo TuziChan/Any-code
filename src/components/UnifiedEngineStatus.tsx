@@ -1,11 +1,11 @@
-import React, { useState } from "react";
-import { Loader2, CheckCircle2, XCircle, Download, RefreshCw, Trash2, MoreHorizontal } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Loader2, CheckCircle2, XCircle, Download, RefreshCw, Trash2, MoreHorizontal, Search, Wrench, AlertTriangle } from "lucide-react";
 import { ClaudeIcon } from "@/components/icons/ClaudeIcon";
 import { CodexIcon } from "@/components/icons/CodexIcon";
 import { GeminiIcon } from "@/components/icons/GeminiIcon";
 import { cn } from "@/lib/utils";
 import { useEngineStatus } from "@/hooks/useEngineStatus";
-import { api } from "@/lib/api";
+import { api, type ToolSearchPatchStatus } from "@/lib/api";
 import {
   Tooltip,
   TooltipContent,
@@ -74,6 +74,46 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
 
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<{ type: string; success: boolean; message: string } | null>(null);
+
+  // ToolSearch patch state
+  const [patchStatus, setPatchStatus] = useState<ToolSearchPatchStatus | null>(null);
+  const [patchChecking, setPatchChecking] = useState(false);
+  const [patchApplying, setPatchApplying] = useState(false);
+
+  // Check ToolSearch patch status when Claude is installed
+  useEffect(() => {
+    if (claudeInstalled && !compact) {
+      setPatchChecking(true);
+      api.checkToolSearchPatch()
+        .then(setPatchStatus)
+        .catch(() => setPatchStatus(null))
+        .finally(() => setPatchChecking(false));
+    }
+  }, [claudeInstalled, compact]);
+
+  const handleApplyPatch = async () => {
+    setPatchApplying(true);
+    try {
+      const result = await api.applyToolSearchFix();
+      setActionResult({
+        type: 'toolsearch-fix',
+        success: result.success,
+        message: result.message,
+      });
+      // Re-check status
+      const newStatus = await api.checkToolSearchPatch();
+      setPatchStatus(newStatus);
+    } catch (err) {
+      setActionResult({
+        type: 'toolsearch-fix',
+        success: false,
+        message: String(err),
+      });
+    } finally {
+      setPatchApplying(false);
+      setTimeout(() => setActionResult(null), 3000);
+    }
+  };
 
   const statuses: EngineStatusDisplay[] = [
     {
@@ -246,6 +286,53 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
               );
             })}
           </div>
+
+          {/* ToolSearch Patch Status (Claude only) */}
+          {claudeInstalled && patchStatus && patchStatus.status !== 'not_found' && (
+            <div className={cn(
+              "flex items-center gap-2 px-2 py-1.5 rounded text-[11px] border",
+              patchStatus.status === 'patched'
+                ? "bg-green-500/5 border-green-500/20 text-green-600 dark:text-green-400"
+                : patchStatus.status === 'unpatched'
+                ? "bg-amber-500/5 border-amber-500/20 text-amber-600 dark:text-amber-400"
+                : "bg-muted/30 border-border/50 text-muted-foreground"
+            )}>
+              {patchStatus.status === 'patched' ? (
+                <>
+                  <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+                  <span className="flex-1">ToolSearch 已修复</span>
+                </>
+              ) : patchStatus.status === 'unpatched' ? (
+                <>
+                  <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+                  <span className="flex-1">ToolSearch 受限</span>
+                  <button
+                    onClick={handleApplyPatch}
+                    disabled={patchApplying}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors text-[10px] font-medium"
+                  >
+                    {patchApplying ? (
+                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                    ) : (
+                      <Wrench className="h-2.5 w-2.5" />
+                    )}
+                    修复
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Search className="h-3 w-3 flex-shrink-0" />
+                  <span className="flex-1">ToolSearch 状态未知</span>
+                </>
+              )}
+            </div>
+          )}
+          {claudeInstalled && patchChecking && (
+            <div className="flex items-center gap-2 px-2 py-1 text-[10px] text-muted-foreground">
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              检测 ToolSearch 状态...
+            </div>
+          )}
 
           {/* Action result toast */}
           {actionResult && (
