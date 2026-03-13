@@ -79,6 +79,8 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
   const [patchStatus, setPatchStatus] = useState<ToolSearchPatchStatus | null>(null);
   const [patchChecking, setPatchChecking] = useState(false);
   const [patchApplying, setPatchApplying] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Check ToolSearch patch status when Claude is installed
   useEffect(() => {
@@ -89,7 +91,15 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
         .catch(() => setPatchStatus(null))
         .finally(() => setPatchChecking(false));
     }
-  }, [claudeInstalled, compact]);
+  }, [claudeInstalled, compact, refreshKey]);
+
+  const handleRefreshAll = async () => {
+    setRefreshing(true);
+    if (refresh) refresh();
+    setRefreshKey((k) => k + 1);
+    // 给引擎状态刷新一点时间
+    setTimeout(() => setRefreshing(false), 1000);
+  };
 
   const handleApplyPatch = async () => {
     setPatchApplying(true);
@@ -207,11 +217,45 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
               </Tooltip>
             </TooltipProvider>
           ))}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleRefreshAll}
+                  disabled={refreshing}
+                  className="p-1 rounded hover:bg-muted transition-colors"
+                >
+                  <RefreshCw className={cn("h-3.5 w-3.5 text-muted-foreground/60", refreshing && "animate-spin")} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-xs">
+                刷新状态
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       ) : (
         <div className="space-y-2 px-2">
-          <div className="text-xs font-medium text-muted-foreground mb-1 ml-1">
-            引擎状态
+          <div className="flex items-center justify-between mb-1 ml-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              引擎状态
+            </span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleRefreshAll}
+                    disabled={refreshing}
+                    className="p-0.5 rounded hover:bg-muted transition-colors"
+                  >
+                    <RefreshCw className={cn("h-3 w-3 text-muted-foreground", refreshing && "animate-spin")} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  刷新状态
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           <div className="grid gap-1.5">
