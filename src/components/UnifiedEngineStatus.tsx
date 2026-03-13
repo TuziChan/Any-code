@@ -84,14 +84,14 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
 
   // Check ToolSearch patch status when Claude is installed
   useEffect(() => {
-    if (claudeInstalled && !compact) {
+    if (claudeInstalled) {
       setPatchChecking(true);
       api.checkToolSearchPatch()
         .then(setPatchStatus)
         .catch(() => setPatchStatus(null))
         .finally(() => setPatchChecking(false));
     }
-  }, [claudeInstalled, compact, refreshKey]);
+  }, [claudeInstalled, refreshKey]);
 
   const handleRefreshAll = async () => {
     setRefreshing(true);
@@ -213,10 +213,45 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
                   <div className="text-[10px] text-muted-foreground mt-1">
                     {engine.statusText} {engine.version && `(${engine.version})`}
                   </div>
+                  {/* ToolSearch patch status in tooltip for Claude */}
+                  {engine.type === 'claude' && patchStatus && patchStatus.status !== 'not_found' && (
+                    <div className={cn(
+                      "text-[10px] mt-1.5 pt-1.5 border-t border-border/50",
+                      patchStatus.status === 'patched' ? "text-green-600 dark:text-green-400" :
+                      patchStatus.status === 'unpatched' ? "text-amber-600 dark:text-amber-400" :
+                      "text-muted-foreground"
+                    )}>
+                      {patchStatus.status === 'patched' ? '✓ ToolSearch 已修复' :
+                       patchStatus.status === 'unpatched' ? '⚠ ToolSearch 受限' :
+                       '? ToolSearch 状态未知'}
+                    </div>
+                  )}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           ))}
+
+          {/* ToolSearch patch indicator for Claude (compact mode) */}
+          {claudeInstalled && patchStatus && patchStatus.status === 'unpatched' && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="relative cursor-default">
+                    <AlertTriangle className="h-4 w-4 text-amber-500 animate-pulse" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="p-2 max-w-[200px]">
+                  <div className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                    ToolSearch 受限
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    使用第三方代理时 ToolSearch 不可用。展开侧边栏查看修复选项。
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
