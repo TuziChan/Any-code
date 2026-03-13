@@ -197,6 +197,60 @@ const FloatingPromptInputInner = (
     };
   }, []);
 
+  // Listen for provider switch events to refresh model list
+  // This handles custom model updates when switching between providers
+  useEffect(() => {
+    const PROVIDER_SWITCHED_EVENT = 'provider-switched';
+
+    const handleProviderSwitched = async () => {
+      try {
+        const settings = await api.getClaudeSettings();
+        const envVars = settings?.data?.env || settings?.env;
+
+        if (envVars && typeof envVars === 'object') {
+          const customModel = envVars.ANTHROPIC_MODEL ||
+                             envVars.ANTHROPIC_DEFAULT_SONNET_MODEL ||
+                             envVars.ANTHROPIC_DEFAULT_OPUS_MODEL;
+
+          if (customModel && typeof customModel === 'string') {
+            // Check if it's a built-in model ID (sonnet, opus, sonnet1m)
+            const isBuiltInModel = ['sonnet', 'opus', 'sonnet1m', 'opus1m'].includes(customModel.toLowerCase());
+
+            if (!isBuiltInModel) {
+              // This is a custom model - add/update it in the list
+              const customModelConfig: ModelConfig = {
+                id: "custom" as ModelType,
+                name: customModel,
+                description: "Custom model from environment variables",
+                icon: <Sparkles className="h-4 w-4" />
+              };
+
+              setAvailableModels(prev => {
+                const hasCustom = prev.some(m => m.id === "custom");
+                if (!hasCustom) return [...prev, customModelConfig];
+                // Update existing custom model if name changed
+                return prev.map(m => m.id === "custom" ? customModelConfig : m);
+              });
+            } else {
+              // It's a built-in model - remove custom entry if exists
+              setAvailableModels(prev => prev.filter(m => m.id !== "custom"));
+            }
+          } else {
+            // No custom model configured - remove custom entry if exists
+            setAvailableModels(prev => prev.filter(m => m.id !== "custom"));
+          }
+        }
+      } catch (error) {
+        console.error('[FloatingPromptInput] Failed to refresh models after provider switch:', error);
+      }
+    };
+
+    window.addEventListener(PROVIDER_SWITCHED_EVENT, handleProviderSwitched);
+    return () => {
+      window.removeEventListener(PROVIDER_SWITCHED_EVENT, handleProviderSwitched);
+    };
+  }, []);
+
   // 🔧 Mac 输入法兼容：追踪 IME 组合输入状态
   const [isComposing, setIsComposing] = useState(false);
   // 记录 compositionend 时间戳，用于冷却期检测

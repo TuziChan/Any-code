@@ -55,6 +55,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     }
   };
 
+  // Event name for provider switch notification
+  const PROVIDER_SWITCHED_EVENT = 'provider-switched';
+
   const handleSwitchProvider = async (e: React.MouseEvent, provider: ProviderConfig) => {
     e.stopPropagation();
     try {
@@ -62,6 +65,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       await api.switchProviderConfig(provider);
       const config = await api.getCurrentProviderConfig();
       setCurrentProvider(config);
+      // Notify upstream components to refresh model list
+      window.dispatchEvent(new CustomEvent(PROVIDER_SWITCHED_EVENT, { detail: { provider, config } }));
     } catch (err) {
       console.error('[ModelSelector] Failed to switch provider:', err);
     } finally {
@@ -76,6 +81,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       await api.clearProviderConfig();
       const config = await api.getCurrentProviderConfig();
       setCurrentProvider(config);
+      // Notify upstream components to refresh model list
+      window.dispatchEvent(new CustomEvent(PROVIDER_SWITCHED_EVENT, { detail: { provider: null, config } }));
     } catch (err) {
       console.error('[ModelSelector] Failed to clear provider:', err);
     } finally {
