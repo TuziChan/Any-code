@@ -106,8 +106,9 @@ export interface ClaudeSettings {
 export enum PermissionMode {
   Interactive = "Interactive",
   AcceptEdits = "AcceptEdits",
-  ReadOnly = "ReadOnly",
   Plan = "Plan",
+  DontAsk = "DontAsk",
+  BypassPermissions = "BypassPermissions",
 }
 
 /**

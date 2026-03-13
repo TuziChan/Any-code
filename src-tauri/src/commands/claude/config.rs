@@ -951,15 +951,15 @@ pub async fn validate_permission_config(
             ));
     }
 
-    // 检查读写权限组合
-    if config.permission_mode == PermissionMode::ReadOnly
+    // 检查读写权限组合：Plan 模式下不应允许写入工具
+    if config.permission_mode == PermissionMode::Plan
         && (config.allowed_tools.contains(&"Write".to_string())
             || config.allowed_tools.contains(&"Edit".to_string()))
     {
         validation_result["warnings"]
             .as_array_mut()
             .unwrap()
-            .push(serde_json::json!("只读模式下允许写入工具可能导致冲突"));
+            .push(serde_json::json!("Plan 模式下允许写入工具可能导致冲突"));
     }
 
     Ok(validation_result)

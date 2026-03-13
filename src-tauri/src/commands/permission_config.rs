@@ -12,10 +12,11 @@ pub struct ClaudePermissionConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum PermissionMode {
-    Interactive,
-    AcceptEdits,
-    ReadOnly,
-    Plan, // Claude CLI 原生支持的 Plan Mode
+    Interactive,        // default — 标准交互模式，首次使用每个工具时提示
+    AcceptEdits,        // acceptEdits — 自动批准文件编辑
+    Plan,               // plan — 只读分析，禁止修改文件或执行命令
+    DontAsk,            // dontAsk — 自动拒绝未预批准的工具
+    BypassPermissions,  // bypassPermissions — 跳过所有权限检查（最危险）
 }
 
 impl Default for ClaudePermissionConfig {
@@ -40,8 +41,9 @@ impl std::fmt::Display for PermissionMode {
         match self {
             PermissionMode::Interactive => write!(f, "default"),
             PermissionMode::AcceptEdits => write!(f, "acceptEdits"),
-            PermissionMode::ReadOnly => write!(f, "bypassPermissions"), // 使用 CLI 正确的参数
-            PermissionMode::Plan => write!(f, "plan"),                  // Plan Mode
+            PermissionMode::Plan => write!(f, "plan"),
+            PermissionMode::DontAsk => write!(f, "dontAsk"),
+            PermissionMode::BypassPermissions => write!(f, "bypassPermissions"),
         }
     }
 }
@@ -197,12 +199,12 @@ impl ClaudePermissionConfig {
         }
     }
 
-    /// 安全模式 - 只允许读取操作
+    /// 安全模式 - 只允许读取操作（使用 Plan 模式）
     pub fn safe_mode() -> Self {
         Self {
             allowed_tools: SAFE_TOOLS.iter().map(|s| s.to_string()).collect(),
             disallowed_tools: vec!["Bash".to_string(), "WebFetch".to_string()],
-            permission_mode: PermissionMode::ReadOnly,
+            permission_mode: PermissionMode::Plan,
             auto_approve_edits: false,
             enable_dangerous_skip: false,
         }
@@ -245,6 +247,30 @@ impl ClaudePermissionConfig {
             disallowed_tools: vec![], // 不需要额外禁止，CLI 已经处理
             permission_mode: PermissionMode::Plan,
             auto_approve_edits: false,
+            enable_dangerous_skip: false,
+        }
+    }
+
+    /// DontAsk Mode - 自动拒绝未预批准的工具请求
+    /// 适合 CI/CD 或自动化场景，只允许 allowedTools 中的工具
+    pub fn dont_ask_mode() -> Self {
+        Self {
+            allowed_tools: DEVELOPMENT_TOOLS.iter().map(|s| s.to_string()).collect(),
+            disallowed_tools: vec![],
+            permission_mode: PermissionMode::DontAsk,
+            auto_approve_edits: false,
+            enable_dangerous_skip: false,
+        }
+    }
+
+    /// BypassPermissions Mode - 跳过所有权限检查（最危险）
+    /// 等同于 --dangerously-skip-permissions 但通过 --permission-mode 参数
+    pub fn bypass_mode() -> Self {
+        Self {
+            allowed_tools: vec![],
+            disallowed_tools: vec![],
+            permission_mode: PermissionMode::BypassPermissions,
+            auto_approve_edits: true,
             enable_dangerous_skip: false,
         }
     }
