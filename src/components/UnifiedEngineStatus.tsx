@@ -214,7 +214,7 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
                     {engine.statusText} {engine.version && `(${engine.version})`}
                   </div>
                   {/* ToolSearch patch status in tooltip for Claude */}
-                  {engine.type === 'claude' && patchStatus && patchStatus.status !== 'not_found' && (
+                  {engine.type === 'claude' && patchStatus && (
                     <div className={cn(
                       "text-[10px] mt-1.5 pt-1.5 border-t border-border/50",
                       patchStatus.status === 'patched' ? "text-green-600 dark:text-green-400" :
@@ -223,6 +223,7 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
                     )}>
                       {patchStatus.status === 'patched' ? '✓ ToolSearch 已修复' :
                        patchStatus.status === 'unpatched' ? '⚠ ToolSearch 受限' :
+                       patchStatus.status === 'not_found' ? '? ToolSearch 未检测到' :
                        '? ToolSearch 状态未知'}
                     </div>
                   )}
@@ -296,135 +297,139 @@ export const UnifiedEngineStatus: React.FC<UnifiedEngineStatusProps> = ({
           <div className="grid gap-1.5">
             {statuses.map((engine) => {
               const isActing = actionInProgress?.startsWith(engine.type);
+              const isClaude = engine.type === 'claude';
+              const showPatch = isClaude && claudeInstalled && patchStatus;
               return (
                 <div
                   key={engine.type}
-                  className="flex items-center justify-between bg-muted/30 hover:bg-muted/50 rounded px-2 py-1.5 transition-colors border border-transparent hover:border-border/50 group"
+                  className="bg-muted/30 hover:bg-muted/50 rounded px-2 py-1.5 transition-colors border border-transparent hover:border-border/50 group"
                 >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <engine.icon className={cn("h-3.5 w-3.5 flex-shrink-0", engine.isInstalled ? engine.color : "text-muted-foreground")} />
-                    <div className="min-w-0 flex-1">
-                      <span className={cn("text-xs", !engine.isInstalled && "text-muted-foreground")}>{engine.label}</span>
-                      {engine.version && (
-                        <span className="text-[10px] text-muted-foreground ml-1">{engine.version}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <engine.icon className={cn("h-3.5 w-3.5 flex-shrink-0", engine.isInstalled ? engine.color : "text-muted-foreground")} />
+                      <div className="min-w-0 flex-1">
+                        <span className={cn("text-xs", !engine.isInstalled && "text-muted-foreground")}>{engine.label}</span>
+                        {engine.version && (
+                          <span className="text-[10px] text-muted-foreground ml-1">{engine.version}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      {isActing ? (
+                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                      ) : (
+                        <>
+                          {engine.isInstalled ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <XCircle className="h-3 w-3 text-red-500" />
+                          )}
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-muted transition-all">
+                                <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" side="right" className="w-36">
+                              {!engine.isInstalled ? (
+                                <DropdownMenuItem
+                                  onClick={() => handleAction(engine.type, 'install')}
+                                  className="text-xs gap-2"
+                                >
+                                  <Download className="h-3 w-3" />
+                                  安装
+                                </DropdownMenuItem>
+                              ) : (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => handleAction(engine.type, 'update')}
+                                    className="text-xs gap-2"
+                                  >
+                                    <RefreshCw className="h-3 w-3" />
+                                    更新
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleAction(engine.type, 'uninstall')}
+                                    className="text-xs gap-2 text-red-500 focus:text-red-500"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                    卸载
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1">
-                    {isActing ? (
-                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                    ) : (
-                      <>
-                        {engine.isInstalled ? (
-                          <CheckCircle2 className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <XCircle className="h-3 w-3 text-red-500" />
-                        )}
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-muted transition-all">
-                              <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" side="right" className="w-36">
-                            {!engine.isInstalled ? (
-                              <DropdownMenuItem
-                                onClick={() => handleAction(engine.type, 'install')}
-                                className="text-xs gap-2"
-                              >
-                                <Download className="h-3 w-3" />
-                                安装
-                              </DropdownMenuItem>
+                  {/* ToolSearch 状态内嵌在 Claude Code 行内 */}
+                  {showPatch && (
+                    <div className={cn(
+                      "flex items-center gap-1.5 mt-1 pt-1 border-t text-[10px]",
+                      patchStatus.status === 'patched'
+                        ? "border-green-500/15 text-green-600 dark:text-green-400"
+                        : patchStatus.status === 'unpatched'
+                        ? "border-amber-500/15 text-amber-600 dark:text-amber-400"
+                        : "border-border/30 text-muted-foreground"
+                    )}>
+                      {patchStatus.status === 'patched' ? (
+                        <>
+                          <CheckCircle2 className="h-2.5 w-2.5 flex-shrink-0" />
+                          <span className="flex-1">ToolSearch 已修复</span>
+                        </>
+                      ) : patchStatus.status === 'unpatched' ? (
+                        <>
+                          <AlertTriangle className="h-2.5 w-2.5 flex-shrink-0" />
+                          <span className="flex-1">ToolSearch 受限</span>
+                          <button
+                            onClick={handleApplyPatch}
+                            disabled={patchApplying}
+                            className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 transition-colors font-medium"
+                          >
+                            {patchApplying ? (
+                              <Loader2 className="h-2.5 w-2.5 animate-spin" />
                             ) : (
-                              <>
-                                <DropdownMenuItem
-                                  onClick={() => handleAction(engine.type, 'update')}
-                                  className="text-xs gap-2"
-                                >
-                                  <RefreshCw className="h-3 w-3" />
-                                  更新
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleAction(engine.type, 'uninstall')}
-                                  className="text-xs gap-2 text-red-500 focus:text-red-500"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                  卸载
-                                </DropdownMenuItem>
-                              </>
+                              <Wrench className="h-2.5 w-2.5" />
                             )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </>
-                    )}
-                  </div>
+                            修复
+                          </button>
+                        </>
+                      ) : patchStatus.status === 'not_found' ? (
+                        <>
+                          <Search className="h-2.5 w-2.5 flex-shrink-0" />
+                          <span className="flex-1">ToolSearch 未检测到</span>
+                          <button
+                            onClick={handleRefreshAll}
+                            disabled={refreshing}
+                            className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-muted hover:bg-muted/80 transition-colors font-medium"
+                          >
+                            <RefreshCw className={cn("h-2.5 w-2.5", refreshing && "animate-spin")} />
+                            重试
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-2.5 w-2.5 flex-shrink-0" />
+                          <span className="flex-1">ToolSearch 状态未知</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {isClaude && claudeInstalled && patchChecking && (
+                    <div className="flex items-center gap-1.5 mt-1 pt-1 border-t border-border/30 text-[10px] text-muted-foreground">
+                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                      检测 ToolSearch...
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
-
-          {/* ToolSearch Patch Status (Claude only) */}
-          {claudeInstalled && patchStatus && (
-            <div className={cn(
-              "flex items-center gap-2 px-2 py-1.5 rounded text-[11px] border",
-              patchStatus.status === 'patched'
-                ? "bg-green-500/5 border-green-500/20 text-green-600 dark:text-green-400"
-                : patchStatus.status === 'unpatched'
-                ? "bg-amber-500/5 border-amber-500/20 text-amber-600 dark:text-amber-400"
-                : "bg-muted/30 border-border/50 text-muted-foreground"
-            )}>
-              {patchStatus.status === 'patched' ? (
-                <>
-                  <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
-                  <span className="flex-1">ToolSearch 已修复</span>
-                </>
-              ) : patchStatus.status === 'unpatched' ? (
-                <>
-                  <AlertTriangle className="h-3 w-3 flex-shrink-0" />
-                  <span className="flex-1">ToolSearch 受限</span>
-                  <button
-                    onClick={handleApplyPatch}
-                    disabled={patchApplying}
-                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors text-[10px] font-medium"
-                  >
-                    {patchApplying ? (
-                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                    ) : (
-                      <Wrench className="h-2.5 w-2.5" />
-                    )}
-                    修复
-                  </button>
-                </>
-              ) : patchStatus.status === 'not_found' ? (
-                <>
-                  <Search className="h-3 w-3 flex-shrink-0" />
-                  <span className="flex-1">ToolSearch 未检测到</span>
-                  <button
-                    onClick={handleRefreshAll}
-                    disabled={refreshing}
-                    className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors text-[10px] font-medium"
-                  >
-                    <RefreshCw className={cn("h-2.5 w-2.5", refreshing && "animate-spin")} />
-                    重试
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Search className="h-3 w-3 flex-shrink-0" />
-                  <span className="flex-1">ToolSearch 状态未知</span>
-                </>
-              )}
-            </div>
-          )}
-          {claudeInstalled && patchChecking && (
-            <div className="flex items-center gap-2 px-2 py-1 text-[10px] text-muted-foreground">
-              <Loader2 className="h-2.5 w-2.5 animate-spin" />
-              检测 ToolSearch 状态...
-            </div>
-          )}
 
           {/* Action result toast */}
           {actionResult && (
