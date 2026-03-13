@@ -144,7 +144,7 @@ export const ToolSearchWidget: React.FC<ToolSearchWidgetProps> = ({ query, maxRe
       {/* 工具列表 */}
       {hasResult && tools.length > 0 && (
         <div className="rounded-lg border overflow-hidden bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
-          {tools.map((tool, idx) => (
+          {tools.map((tool) => (
             <div
               key={tool.name}
               className={cn(
