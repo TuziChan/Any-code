@@ -167,6 +167,11 @@ use commands::gemini::{
     GeminiProcessState,
 };
 use commands::git_stats::{get_git_diff_stats, get_session_code_changes};
+use commands::engine_manager::{
+    install_claude_cli, update_claude_cli, uninstall_claude_cli,
+    install_codex_cli, update_codex_cli, uninstall_codex_cli,
+    install_gemini_cli, update_gemini_cli, uninstall_gemini_cli,
+};
 use process::ProcessRegistryState;
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_window_state::Builder as WindowStatePlugin;
@@ -549,6 +554,16 @@ fn main() {
             set_gemini_wsl_mode_config,
             // Gemini Usage Statistics
             get_gemini_usage_stats,
+            // Engine Management (Install/Update/Uninstall)
+            install_claude_cli,
+            update_claude_cli,
+            uninstall_claude_cli,
+            install_codex_cli,
+            update_codex_cli,
+            uninstall_codex_cli,
+            install_gemini_cli,
+            update_gemini_cli,
+            uninstall_gemini_cli,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

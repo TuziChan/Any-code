@@ -366,6 +366,15 @@ export interface ApiKeyUsage {
 }
 
 /**
+ * Engine management action result
+ */
+export interface EngineActionResult {
+  success: boolean;
+  message: string;
+  output: string;
+}
+
+/**
  * Codex provider configuration for OpenAI Codex API switching
  */
 export interface CodexProviderConfig {
@@ -4230,6 +4239,36 @@ export const api = {
       console.error("Failed to delete Gemini session:", error);
       throw error;
     }
+  },
+
+  // ─── Engine Management (Install/Update/Uninstall) ───
+
+  async installClaudeCli(): Promise<EngineActionResult> {
+    return await invoke<EngineActionResult>("install_claude_cli");
+  },
+  async updateClaudeCli(): Promise<EngineActionResult> {
+    return await invoke<EngineActionResult>("update_claude_cli");
+  },
+  async uninstallClaudeCli(): Promise<EngineActionResult> {
+    return await invoke<EngineActionResult>("uninstall_claude_cli");
+  },
+  async installCodexCli(): Promise<EngineActionResult> {
+    return await invoke<EngineActionResult>("install_codex_cli");
+  },
+  async updateCodexCli(): Promise<EngineActionResult> {
+    return await invoke<EngineActionResult>("update_codex_cli");
+  },
+  async uninstallCodexCli(): Promise<EngineActionResult> {
+    return await invoke<EngineActionResult>("uninstall_codex_cli");
+  },
+  async installGeminiCli(): Promise<EngineActionResult> {
+    return await invoke<EngineActionResult>("install_gemini_cli");
+  },
+  async updateGeminiCli(): Promise<EngineActionResult> {
+    return await invoke<EngineActionResult>("update_gemini_cli");
+  },
+  async uninstallGeminiCli(): Promise<EngineActionResult> {
+    return await invoke<EngineActionResult>("uninstall_gemini_cli");
   },
 
 };

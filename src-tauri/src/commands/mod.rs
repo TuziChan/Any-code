@@ -4,6 +4,7 @@ pub mod clipboard;
 pub mod codex; // OpenAI Codex integration
 pub mod context_commands;
 pub mod context_manager;
+pub mod engine_manager; // Engine install/update/uninstall
 pub mod enhanced_hooks;
 pub mod extensions;
 pub mod file_operations;
