@@ -749,7 +749,10 @@
     "confirmCloseTab": "确认关闭标签页",
     "unsavedChangesWarning": "此会话有未保存的更改，确定要关闭吗？关闭后更改将丢失。",
     "confirmClose": "确认关闭",
-    "unnamedSession": "未命名会话"
+    "unnamedSession": "未命名会话",
+    "openInExplorer": "在文件资源管理器中打开",
+    "openInTerminal": "在终端中打开",
+    "projectPath": "路径："
   },
   "planMode": {
     "selectRevertMode": "选择撤回模式",

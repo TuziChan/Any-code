@@ -3070,6 +3070,18 @@ export const api = {
   },
 
   /**
+   * Open a directory in system terminal (cross-platform)
+   */
+  async openDirectoryInTerminal(directoryPath: string): Promise<void> {
+    try {
+      return await invoke<void>("open_directory_in_terminal", { directoryPath });
+    } catch (error) {
+      console.error("Failed to open directory in terminal:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Open a file with system default application (cross-platform)
    */
   async openFileWithDefaultApp(filePath: string): Promise<void> {

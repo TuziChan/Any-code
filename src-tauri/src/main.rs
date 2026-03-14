@@ -129,7 +129,7 @@ use commands::extensions::{
     open_commands_directory, open_plugins_directory, open_skills_directory, read_skill,
     read_subagent, reinstall_plugin, toggle_plugin_enabled, uninstall_plugin,
 };
-use commands::file_operations::{open_directory_in_explorer, open_file_with_default_app};
+use commands::file_operations::{open_directory_in_explorer, open_directory_in_terminal, open_file_with_default_app};
 use commands::gemini::{
     add_gemini_provider_config,
     cancel_gemini,
@@ -465,6 +465,7 @@ fn main() {
             open_commands_directory,
             // File Operations
             open_directory_in_explorer,
+            open_directory_in_terminal,
             open_file_with_default_app,
             // Git Statistics
             get_git_diff_stats,

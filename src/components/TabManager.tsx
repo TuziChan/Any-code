@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, MoreHorizontal, MessageSquare, ArrowLeft, ExternalLink, Zap, Bot, Sparkles, Loader2 } from 'lucide-react';
+import { X, Plus, MoreHorizontal, MessageSquare, ArrowLeft, ExternalLink, Zap, Bot, Sparkles, Loader2, FolderOpen, Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/useTranslation';
 import {
@@ -30,6 +30,7 @@ import { TabSessionWrapper } from './TabSessionWrapper';
 import { useTabs } from '@/hooks/useTabs';
 import { useSessionSync } from '@/hooks/useSessionSync'; // 🔧 NEW: 会话状态同步
 import { selectProjectPath } from '@/lib/sessionHelpers';
+import { api } from '@/lib/api';
 import type { Session } from '@/lib/api';
 
 interface TabManagerProps {
@@ -585,6 +586,34 @@ export const TabManager: React.FC<TabManagerProps> = ({
                 {t('tabs.newSessionWindow')}
               </button>
               <div className="-mx-1 my-1 h-px bg-muted" />
+              {/* 在文件资源管理器中打开 */}
+              {(() => {
+                const ctxTab = tabs.find(t => t.id === contextMenu.tabId);
+                const ctxPath = ctxTab?.projectPath || ctxTab?.session?.project_path;
+                return ctxPath ? (
+                  <>
+                    <button
+                      className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => { api.openDirectoryInExplorer(ctxPath); setContextMenu(null); }}
+                    >
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      {t('tabs.openInExplorer')}
+                    </button>
+                    <button
+                      className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => { api.openDirectoryInTerminal(ctxPath); setContextMenu(null); }}
+                    >
+                      <Terminal className="h-4 w-4 mr-2" />
+                      {t('tabs.openInTerminal')}
+                    </button>
+                    <div className="-mx-1 my-1 h-px bg-muted" />
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground truncate max-w-[300px]" title={ctxPath}>
+                      {t('tabs.projectPath')} {ctxPath}
+                    </div>
+                    <div className="-mx-1 my-1 h-px bg-muted" />
+                  </>
+                ) : null;
+              })()}
               <button
                 className="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                 onClick={() => { handleCloseTab(contextMenu.tabId); setContextMenu(null); }}

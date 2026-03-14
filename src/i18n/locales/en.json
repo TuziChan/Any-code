@@ -749,7 +749,10 @@
     "confirmCloseTab": "Confirm Close Tab",
     "unsavedChangesWarning": "This session has unsaved changes. Are you sure you want to close? Changes will be lost.",
     "confirmClose": "Confirm Close",
-    "unnamedSession": "Unnamed Session"
+    "unnamedSession": "Unnamed Session",
+    "openInExplorer": "Open in File Explorer",
+    "openInTerminal": "Open in Terminal",
+    "projectPath": "Path:"
   },
   "planMode": {
     "selectRevertMode": "Select Revert Mode",

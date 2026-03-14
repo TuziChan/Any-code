@@ -749,7 +749,10 @@
     "confirmCloseTab": "確認關閉分頁",
     "unsavedChangesWarning": "此對話有未儲存的更改，確定要關閉嗎？關閉後更改將遺失。",
     "confirmClose": "確認關閉",
-    "unnamedSession": "未命名對話"
+    "unnamedSession": "未命名對話",
+    "openInExplorer": "在檔案總管中開啟",
+    "openInTerminal": "在終端機中開啟",
+    "projectPath": "路徑："
   },
   "planMode": {
     "selectRevertMode": "選擇撤回模式",
