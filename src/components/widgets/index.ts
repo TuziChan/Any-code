@@ -85,6 +85,9 @@ export type { MultiEditWidgetProps } from './agent/MultiEditWidget';
 export { GeminiSubagentWidget } from './agent/GeminiSubagentWidget';
 export type { GeminiSubagentWidgetProps } from './agent/GeminiSubagentWidget';
 
+export { AgentWidget } from './agent/AgentWidget';
+export type { AgentWidgetProps } from './agent/AgentWidget';
+
 export { TaskOutputWidget } from './agent/TaskOutputWidget';
 export type { TaskOutputWidgetProps } from './agent/TaskOutputWidget';
 

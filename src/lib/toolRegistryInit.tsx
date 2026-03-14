@@ -38,10 +38,10 @@ import {
   TaskGetWidget,
 
   // 子代理类
-  TaskWidget,
   TaskOutputWidget,
   MultiEditWidget,
   GeminiSubagentWidget,
+  AgentWidget,
 
   // Web 工具类
   WebFetchWidget,
@@ -606,13 +606,34 @@ export function initializeToolRegistry(): void {
     // Task - 子代理工具（Claude Code 特有）
     {
       name: 'task',
-      render: createToolAdapter(TaskWidget, (props) => ({
+      render: createToolAdapter(AgentWidget, (props) => ({
+        subagentType: props.input?.subagent_type ?? props.result?.content?.subagent_type,
         description: props.input?.description ?? props.result?.content?.description,
         prompt: props.input?.prompt ?? props.result?.content?.prompt,
+        model: props.input?.model,
+        runInBackground: props.input?.run_in_background,
+        isolation: props.input?.isolation,
         result: props.result,
-        subagentType: props.input?.subagent_type ?? props.result?.content?.subagent_type,
+        isStreaming: props.isStreaming,
       })),
       description: 'Claude Code 子代理工具',
+    },
+
+    // Agent - 子代理工具别名（部分引擎使用 Agent 作为工具名）
+    {
+      name: 'agent',
+      pattern: /^agent$/i,
+      render: createToolAdapter(AgentWidget, (props) => ({
+        subagentType: props.input?.subagent_type ?? props.result?.content?.subagent_type,
+        description: props.input?.description ?? props.result?.content?.description,
+        prompt: props.input?.prompt ?? props.result?.content?.prompt,
+        model: props.input?.model,
+        runInBackground: props.input?.run_in_background,
+        isolation: props.input?.isolation,
+        result: props.result,
+        isStreaming: props.isStreaming,
+      })),
+      description: 'Claude Code Agent 子代理工具',
     },
 
     // TaskOutput - 获取后台任务输出（Claude Code 特有）
