@@ -38,11 +38,24 @@ pub async fn open_directory_in_terminal(directory_path: String) -> Result<(), St
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::process::CommandExt;
-        let mut cmd = StdCommand::new("cmd");
-        cmd.args(&["/C", "start", "cmd", "/K", &format!("cd /d {}", &directory_path)]);
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-        cmd.spawn()
-            .map_err(|e| format!("Failed to open terminal: {}", e))?;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        // Try Windows Terminal (wt.exe) first — available on Windows 11 and Win10 with manual install
+        let wt_result = {
+            let mut cmd = StdCommand::new("wt");
+            cmd.args(&["-d", &directory_path]);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            cmd.spawn()
+        };
+
+        if wt_result.is_err() {
+            // Fallback to PowerShell for Windows 10
+            let mut cmd = StdCommand::new("powershell");
+            cmd.args(&["-NoExit", "-Command", &format!("Set-Location '{}'", &directory_path)]);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            cmd.spawn()
+                .map_err(|e| format!("Failed to open terminal: {}", e))?;
+        }
     }
 
     #[cfg(target_os = "macos")]
