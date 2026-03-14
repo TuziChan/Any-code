@@ -105,9 +105,9 @@ export const AgentWidget: React.FC<AgentWidgetProps> = ({
   };
 
   return (
-    <div className={cn('rounded-lg border overflow-hidden', colorClass(c, 'border'), colorClass(c, 'bg'))}>
+    <div className={cn('rounded-lg border overflow-hidden bg-card', colorClass(c, 'border'))}>
       {/* Header */}
-      <div className={cn('flex items-center gap-2 px-4 py-2.5', colorClass(c, 'bg'))}>
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/30 border-b border-border/50">
         <div className="relative flex-shrink-0">
           <AgentIcon className={cn('h-4 w-4', colorClass(c, 'text'))} />
           <Sparkles className={cn('h-2.5 w-2.5 absolute -top-1 -right-1', colorClass(c, 'text'))} />
